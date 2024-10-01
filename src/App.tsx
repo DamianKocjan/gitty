@@ -8,22 +8,27 @@ export function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
+  const [activeCommitHash, setActiveCommitHash] = useState("");
+
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     setGreetMsg(await invoke("greet", { name }));
   }
 
   const { data } = useQuery({
-    queryKey: ["get_commits"],
+    queryKey: ["commits"],
     queryFn: async () => {
       return await invoke("get_commits");
     },
   });
 
-  async function getCommitInfo(hash: string) {
-    const commitInfo = await invoke("get_commit", { hash });
-    console.log(commitInfo);
-  }
+  const commitInfoQuery = useQuery({
+    queryKey: ["commit", activeCommitHash],
+    queryFn: async () => {
+      return await invoke("get_commit", { hash: activeCommitHash });
+    },
+    enabled: !!activeCommitHash,
+  });
 
   return (
     <div className="container">
@@ -44,9 +49,18 @@ export function App() {
 
       <p>{greetMsg}</p>
 
+      <h2>Commit Info</h2>
+
+      {JSON.stringify(commitInfoQuery.data)}
+
+      <h2>Commits</h2>
+
       <ul>
         {data?.map((commit: any) => (
-          <li key={commit.hash} onClick={() => getCommitInfo(commit.hash)}>
+          <li
+            key={commit.hash}
+            onClick={() => setActiveCommitHash(commit.hash)}
+          >
             {commit.message}
           </li>
         ))}
