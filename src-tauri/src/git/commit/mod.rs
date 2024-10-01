@@ -116,7 +116,6 @@ fn parse_commit(output: &str, hash: &str) -> CommitWithDiff {
     let mut diff = Vec::new();
 
     while let Some(line) = lines.next() {
-        println!("{}", line);
         if line.trim() == "" {
             continue;
         }
