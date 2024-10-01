@@ -12,6 +12,12 @@ export function App() {
     setGreetMsg(await invoke("greet", { name }));
   }
 
+  async function getCommits() {
+    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+    const commits = await invoke("get_commits");
+    console.log(commits);
+  }
+
   return (
     <div className="container">
       <form
@@ -29,6 +35,9 @@ export function App() {
         <Button type="submit">Greet</Button>
       </form>
 
+      <Button type="button" onClick={getCommits}>
+        Get Commits
+      </Button>
       <p>{greetMsg}</p>
     </div>
   );
