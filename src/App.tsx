@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { Button } from "./components/ui/button";
@@ -12,10 +13,16 @@ export function App() {
     setGreetMsg(await invoke("greet", { name }));
   }
 
-  async function getCommits() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    const commits = await invoke("get_commits");
-    console.log(commits);
+  const { data } = useQuery({
+    queryKey: ["get_commits"],
+    queryFn: async () => {
+      return await invoke("get_commits");
+    },
+  });
+
+  async function getCommitInfo(hash: string) {
+    const commitInfo = await invoke("get_commit", { hash });
+    console.log(commitInfo);
   }
 
   return (
@@ -35,10 +42,15 @@ export function App() {
         <Button type="submit">Greet</Button>
       </form>
 
-      <Button type="button" onClick={getCommits}>
-        Get Commits
-      </Button>
       <p>{greetMsg}</p>
+
+      <ul>
+        {data?.map((commit: any) => (
+          <li key={commit.hash} onClick={() => getCommitInfo(commit.hash)}>
+            {commit.message}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
