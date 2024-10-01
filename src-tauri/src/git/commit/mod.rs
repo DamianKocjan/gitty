@@ -12,17 +12,45 @@ pub struct Commit {
     pub author: String,
     pub timestamp: u64,
     pub message: String,
+    pub description: Option<String>,
 }
 
 impl Commit {
-    pub fn new(hash: String, author: String, timestamp: u64, message: String) -> Self {
+    pub fn new(
+        hash: String,
+        author: String,
+        timestamp: u64,
+        message: String,
+        description: Option<String>,
+    ) -> Self {
         Self {
             hash,
             author,
             timestamp,
             message,
+            description,
         }
     }
+}
+
+fn parse_single_commit(output: &str) -> Commit {
+    let mut lines = output.split("\n");
+    let hash = lines.next().unwrap().to_string();
+    let author = lines.next().unwrap().to_string();
+    let timestamp = lines.next().unwrap().parse::<u64>().unwrap();
+    let message = lines.next().unwrap().to_string();
+
+    Commit::new(hash, author, timestamp, message, None)
+}
+
+fn parse_commits(output: &str) -> Vec<Commit> {
+    let mut commits = Vec::new();
+    output.split("\n\n").for_each(|chunk| {
+        let commit = parse_single_commit(chunk);
+        commits.push(commit);
+    });
+
+    commits
 }
 
 pub fn get_commits() -> Vec<Commit> {
@@ -38,15 +66,5 @@ pub fn get_commits() -> Vec<Commit> {
         return Vec::new();
     }
 
-    let mut commits = Vec::new();
-    output.split("\n\n").for_each(|chunk| {
-        let mut lines = chunk.split("\n");
-        let hash = lines.next().unwrap().to_string();
-        let author = lines.next().unwrap().to_string();
-        let timestamp = lines.next().unwrap().parse::<u64>().unwrap();
-        let message = lines.next().unwrap().to_string();
-        commits.push(Commit::new(hash, author, timestamp, message));
-    });
-
-    commits
+    parse_commits(&output)
 }
