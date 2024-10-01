@@ -4,8 +4,6 @@ use serde::Serialize;
 
 use crate::utils::subprocess::create_git_cli;
 
-static GIT_LOG_PARAMS: &str = "--pretty=format:%H%n%aN%n%at%n%s%n";
-
 #[derive(Serialize)]
 pub struct Commit {
     pub hash: String,
@@ -55,7 +53,7 @@ fn parse_commits(output: &str) -> Vec<Commit> {
 
 pub fn get_commits() -> Vec<Commit> {
     let cli = create_git_cli()
-        .args(["log", GIT_LOG_PARAMS])
+        .args(["log", "--pretty=format:%H%n%aN%n%at%n%s%n"])
         .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("failed to spawn cmd process");
