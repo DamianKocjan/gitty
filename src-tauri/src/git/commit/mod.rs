@@ -161,6 +161,55 @@ pub fn get_commit(hash: &str) -> Option<CommitWithDiff> {
     Some(parse_commit(&output, hash))
 }
 
+pub fn get_commit_file_changes(hash: &str, file: &str) -> Option<String> {
+    let file_path = format!("\"./{}\"", file);
+
+    let cli = create_git_cli()
+        .args([
+            "diff",
+            hash,
+            "--unified=100000", // to get the whole file
+            "--no-color",
+            "--patch-with-raw",
+            // "--exit-code",
+            "--", // to separate paths from revisions
+            &file_path,
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("failed to spawn cmd process");
+
+    let output = cli
+        .wait_with_output()
+        .expect("failed to wait for child process");
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+
+    if !stderr.is_empty() {
+        return None;
+    }
+
+    if stdout.is_empty() {
+        return None;
+    }
+
+    // skip the first 4 lines as they are not needed
+    Some(
+        stdout
+            .lines()
+            .skip(4)
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>()
+            .join("\n"),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

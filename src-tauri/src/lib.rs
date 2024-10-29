@@ -17,11 +17,21 @@ fn get_commit(hash: &str) -> Option<git::commit::CommitWithDiff> {
     git::commit::get_commit(hash)
 }
 
+#[tauri::command]
+fn get_commit_file_changes(hash: &str, file: &str) -> Option<String> {
+    git::commit::get_commit_file_changes(hash, file)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, get_commits, get_commit])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_commits,
+            get_commit,
+            get_commit_file_changes
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
