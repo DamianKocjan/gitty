@@ -1,57 +1,86 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { useState } from "react";
-import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
+import React, { useState } from "react";
+import {
+  GitCommitDetailsResult,
+  GitCommitsResult,
+  GitFileChangesResult,
+} from "./lib/git-types";
 
 export function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
   const [activeCommitHash, setActiveCommitHash] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const [activeCommitFile, setActiveCommitFile] = useState("");
 
   const { data } = useQuery({
     queryKey: ["commits"],
     queryFn: async () => {
-      return await invoke("get_commits");
+      return await invoke<GitCommitsResult>("get_commits");
     },
   });
 
   const commitInfoQuery = useQuery({
     queryKey: ["commit", activeCommitHash],
     queryFn: async () => {
-      return await invoke("get_commit", { hash: activeCommitHash });
+      return await invoke<GitCommitDetailsResult>("get_commit", {
+        hash: activeCommitHash,
+      });
     },
     enabled: !!activeCommitHash,
   });
 
+  React.useEffect(() => {
+    if (commitInfoQuery.data) {
+      setActiveCommitFile(commitInfoQuery.data.diff[0].file_name);
+    }
+  }, [commitInfoQuery.data]);
+
+  const commitFileChangesQuery = useQuery({
+    queryKey: ["commit_file_changes", activeCommitHash, activeCommitFile],
+    queryFn: async () => {
+      return await invoke<GitFileChangesResult>("get_commit_file_changes", {
+        hash: activeCommitHash,
+        file: activeCommitFile,
+      });
+    },
+    enabled: !!activeCommitHash && !!activeCommitFile,
+  });
+
   return (
     <div className="container">
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <Input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <Button type="submit">Greet</Button>
-      </form>
-
-      <p>{greetMsg}</p>
-
       <h2>Commit Info</h2>
 
-      {JSON.stringify(commitInfoQuery.data)}
+      {!!commitInfoQuery.data && (
+        <ul>
+          <li>
+            <strong>Author:</strong> {commitInfoQuery.data.commit.author}
+          </li>
+          <li>
+            <strong>Message:</strong> {commitInfoQuery.data.commit.message}
+          </li>
+          <li>
+            <strong>Files:</strong>
+            <ul>
+              {commitInfoQuery.data.diff.map((file: any) => (
+                <li
+                  key={file.file_name}
+                  onClick={() => setActiveCommitFile(file.file_name)}
+                  className={
+                    activeCommitFile === file.file_name ? "font-bold" : ""
+                  }
+                >
+                  {file.file_name}
+
+                  {activeCommitFile === file.file_name && (
+                    <p className="outline outline-1 outline-black">
+                      {commitFileChangesQuery.data || "NOT WORKING"}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ul>
+      )}
 
       <h2>Commits</h2>
 
