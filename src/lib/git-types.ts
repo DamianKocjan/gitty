@@ -23,3 +23,24 @@ export type GitCommitDetailsResult = Option<GitCommitDetails>;
 
 export type GitFileChanges = string;
 export type GitFileChangesResult = Option<GitFileChanges>;
+
+export type GitBranch =
+  | {
+      name: string;
+      is_current: boolean;
+      is_remote: true;
+      is_head: boolean;
+      remote: string;
+    }
+  | {
+      name: string;
+      is_current: boolean;
+      is_remote: false;
+      is_head: boolean;
+      remote: null;
+    };
+
+export type GitBranchListResult = GitBranch[];
+
+export type GitCurrentBranch = string;
+export type GitCurrentBranchResult = GitCurrentBranch;

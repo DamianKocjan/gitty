@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import React, { useState } from "react";
 import {
+  GitBranchListResult,
   GitCommitDetailsResult,
   GitCommitsResult,
   GitFileChangesResult,
 } from "./lib/git-types";
+import { cn } from "./lib/utils";
 
 export function App() {
   const [activeCommitHash, setActiveCommitHash] = useState("");
@@ -45,8 +47,32 @@ export function App() {
     enabled: !!activeCommitHash && !!activeCommitFile,
   });
 
+  const branchListQuery = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      return await invoke<GitBranchListResult>("get_branch_list");
+    },
+  });
+
   return (
     <div className="container">
+      <h2>Branches</h2>
+      <select>
+        {branchListQuery.data?.map((branch) => (
+          <option
+            key={branch.name}
+            value={branch.name}
+            className={cn(
+              branch.is_current && "font-bold",
+              branch.is_head && "font-italic",
+              branch.is_remote && "text-red-500"
+            )}
+          >
+            {branch.name}
+          </option>
+        ))}
+      </select>
+
       <h2>Commit Info</h2>
 
       {!!commitInfoQuery.data && (

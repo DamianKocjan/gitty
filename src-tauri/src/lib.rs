@@ -22,6 +22,16 @@ fn get_commit_file_changes(hash: &str, file: &str) -> Option<String> {
     git::commit::get_commit_file_changes(hash, file)
 }
 
+#[tauri::command]
+fn get_current_branch() -> Option<git::branch::CurrentBranch> {
+    git::branch::get_current_branch()
+}
+
+#[tauri::command]
+fn get_branch_list() -> Vec<git::branch::Branch> {
+    git::branch::get_branch_list()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -30,7 +40,9 @@ pub fn run() {
             greet,
             get_commits,
             get_commit,
-            get_commit_file_changes
+            get_commit_file_changes,
+            get_current_branch,
+            get_branch_list
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
