@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::Serialize;
 
 use crate::utils::subprocess::create_git_cli;
@@ -76,9 +78,10 @@ fn parse_branches(output: &str) -> Vec<Branch> {
     branches
 }
 
-pub fn get_branch_list() -> Vec<Branch> {
+pub fn get_branch_list(dir: &PathBuf) -> Vec<Branch> {
     let output = create_git_cli()
         .args(["branch", "-a"])
+        .current_dir(dir)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
@@ -116,9 +119,10 @@ fn parse_current_branch(output: &str) -> Option<CurrentBranch> {
     Some(output.to_string())
 }
 
-pub fn get_current_branch() -> Option<CurrentBranch> {
+pub fn get_current_branch(dir: &PathBuf) -> Option<CurrentBranch> {
     let output = create_git_cli()
         .args(["branch", "--show-current"])
+        .current_dir(dir)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()

@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::{io::Read, path::PathBuf};
 
 use serde::Serialize;
 
@@ -51,9 +51,10 @@ fn parse_commits(output: &str) -> Vec<Commit> {
     commits
 }
 
-pub fn get_commits() -> Vec<Commit> {
+pub fn get_commits(dir: &PathBuf) -> Vec<Commit> {
     let cli = create_git_cli()
         .args(["log", "--pretty=format:%H%n%aN%n%at%n%s%n"])
+        .current_dir(dir)
         .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("failed to spawn cmd process");
@@ -140,7 +141,7 @@ fn parse_commit(output: &str, hash: &str) -> CommitWithDiff {
     CommitWithDiff::new(commit, diff)
 }
 
-pub fn get_commit(hash: &str) -> Option<CommitWithDiff> {
+pub fn get_commit(dir: &PathBuf, hash: &str) -> Option<CommitWithDiff> {
     let cli = create_git_cli()
         .args([
             "show",
@@ -148,6 +149,7 @@ pub fn get_commit(hash: &str) -> Option<CommitWithDiff> {
             "--pretty=format:%aN%n%at%n%s%n%b%n",
             "--numstat",
         ])
+        .current_dir(dir)
         .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("failed to spawn cmd process");
@@ -161,7 +163,7 @@ pub fn get_commit(hash: &str) -> Option<CommitWithDiff> {
     Some(parse_commit(&output, hash))
 }
 
-pub fn get_commit_file_changes(hash: &str, file: &str) -> Option<String> {
+pub fn get_commit_file_changes(dir: &PathBuf, hash: &str, file: &str) -> Option<String> {
     let file_path = format!("\"./{}\"", file);
 
     let cli = create_git_cli()
@@ -175,6 +177,7 @@ pub fn get_commit_file_changes(hash: &str, file: &str) -> Option<String> {
             "--", // to separate paths from revisions
             &file_path,
         ])
+        .current_dir(dir)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
