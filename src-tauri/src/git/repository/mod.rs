@@ -1,8 +1,14 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use crate::utils::subprocess::create_git_cli;
 
+const GIT_FOLDER: &str = ".git";
+
 pub fn is_git_repository_found(path: &PathBuf) -> bool {
+    if !fs::read_dir(path.join(GIT_FOLDER)).is_ok() {
+        return false;
+    }
+
     let output = create_git_cli()
         .args(["rev-parse", "--is-inside-work-tree"])
         .current_dir(path)

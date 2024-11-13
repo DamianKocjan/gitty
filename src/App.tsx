@@ -62,6 +62,8 @@ export function App() {
     },
     onSuccess(success) {
       if (!success) {
+        console.error("Failed to open repository");
+
         return;
       }
 
