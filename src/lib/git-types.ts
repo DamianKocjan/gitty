@@ -44,3 +44,5 @@ export type GitBranchListResult = GitBranch[];
 
 export type GitCurrentBranch = string;
 export type GitCurrentBranchResult = GitCurrentBranch;
+
+export type OpenRepositoryResult = boolean;

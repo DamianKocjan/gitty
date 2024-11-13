@@ -3,6 +3,8 @@ use std::sync::Mutex;
 use tauri::Runtime;
 use tauri_plugin_dialog::DialogExt;
 
+use git::repository::is_git_repository_found;
+
 mod git;
 mod utils;
 
@@ -44,6 +46,31 @@ fn get_branch_list(state: tauri::State<'_, AppState>) -> Vec<git::branch::Branch
     git::branch::get_branch_list(&state.cwd.lock().unwrap().to_path_buf())
 }
 
+#[tauri::command]
+fn open_repository<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+) -> bool {
+    let file_path = app.dialog().file().blocking_pick_folder();
+
+    if let Some(file_path) = file_path {
+        let file_path = file_path.into_path().unwrap();
+
+        if !is_git_repository_found(&file_path) {
+            app.dialog()
+                .message("Not a git repository")
+                .kind(tauri_plugin_dialog::MessageDialogKind::Error)
+                .blocking_show();
+            return false;
+        }
+
+        let mut cwd = state.cwd.lock().unwrap();
+        *cwd = file_path;
+    }
+
+    true
+}
+
 struct AppState {
     cwd: Mutex<std::path::PathBuf>,
 }
@@ -63,6 +90,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
+            open_repository,
             greet,
             get_commits,
             get_commit,

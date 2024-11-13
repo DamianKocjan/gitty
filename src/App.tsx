@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import React, { useState } from "react";
+import { Button } from "./components/ui/button";
 import {
   GitBranchListResult,
   GitCommitDetailsResult,
   GitCommitsResult,
   GitFileChangesResult,
+  OpenRepositoryResult,
 } from "./lib/git-types";
 import { cn } from "./lib/utils";
 
@@ -13,7 +15,7 @@ export function App() {
   const [activeCommitHash, setActiveCommitHash] = useState("");
   const [activeCommitFile, setActiveCommitFile] = useState("");
 
-  const { data } = useQuery({
+  const commitsQuery = useQuery({
     queryKey: ["commits"],
     queryFn: async () => {
       return await invoke<GitCommitsResult>("get_commits");
@@ -54,8 +56,26 @@ export function App() {
     },
   });
 
+  const openRepositoryMutation = useMutation({
+    mutationFn: async () => {
+      return await invoke<OpenRepositoryResult>("open_repository");
+    },
+    onSuccess(success) {
+      if (!success) {
+        return;
+      }
+
+      commitsQuery.refetch();
+      branchListQuery.refetch();
+    },
+  });
+
   return (
     <div className="container">
+      <Button onClick={() => openRepositoryMutation.mutate()}>
+        change repo
+      </Button>
+
       <h2>Branches</h2>
       <select>
         {branchListQuery.data?.map((branch) => (
@@ -86,7 +106,7 @@ export function App() {
           <li>
             <strong>Files:</strong>
             <ul>
-              {commitInfoQuery.data.diff.map((file: any) => (
+              {commitInfoQuery.data.diff.map((file) => (
                 <li
                   key={file.file_name}
                   onClick={() => setActiveCommitFile(file.file_name)}
@@ -111,7 +131,7 @@ export function App() {
       <h2>Commits</h2>
 
       <ul>
-        {data?.map((commit: any) => (
+        {commitsQuery.data?.map((commit) => (
           <li
             key={commit.hash}
             onClick={() => setActiveCommitHash(commit.hash)}
