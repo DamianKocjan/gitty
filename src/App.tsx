@@ -1,36 +1,22 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
 import React, { useState } from "react";
 import { Button } from "./components/ui/button";
-import {
-  GitBranchListResult,
-  GitCommitDetailsResult,
-  GitCommitsResult,
-  GitFileChangesResult,
-  OpenRepositoryResult,
-} from "./lib/git-types";
+import { useBranchListQuery } from "./hooks/use-branch-list-query";
+import { useCommitFileChangesQuery } from "./hooks/use-commit-file-changes-query";
+import { useCommitQuery } from "./hooks/use-commit-query";
+import { useCommitsQuery } from "./hooks/use-commits-query";
+import { useOpenRepositoryMutation } from "./hooks/use-open-repository-mutation";
+import { Option } from "./lib/git-types";
 import { cn } from "./lib/utils";
 
 export function App() {
-  const [activeCommitHash, setActiveCommitHash] = useState("");
-  const [activeCommitFile, setActiveCommitFile] = useState("");
+  const [activeCommitHash, setActiveCommitHash] =
+    useState<Option<string>>(null);
+  const [activeCommitFile, setActiveCommitFile] =
+    useState<Option<string>>(null);
 
-  const commitsQuery = useQuery({
-    queryKey: ["commits"],
-    queryFn: async () => {
-      return await invoke<GitCommitsResult>("get_commits");
-    },
-  });
+  const commitsQuery = useCommitsQuery();
 
-  const commitInfoQuery = useQuery({
-    queryKey: ["commit", activeCommitHash],
-    queryFn: async () => {
-      return await invoke<GitCommitDetailsResult>("get_commit", {
-        hash: activeCommitHash,
-      });
-    },
-    enabled: !!activeCommitHash,
-  });
+  const commitInfoQuery = useCommitQuery(activeCommitHash);
 
   React.useEffect(() => {
     if (commitInfoQuery.data) {
@@ -38,39 +24,14 @@ export function App() {
     }
   }, [commitInfoQuery.data]);
 
-  const commitFileChangesQuery = useQuery({
-    queryKey: ["commit_file_changes", activeCommitHash, activeCommitFile],
-    queryFn: async () => {
-      return await invoke<GitFileChangesResult>("get_commit_file_changes", {
-        hash: activeCommitHash,
-        file: activeCommitFile,
-      });
-    },
-    enabled: !!activeCommitHash && !!activeCommitFile,
-  });
+  const commitFileChangesQuery = useCommitFileChangesQuery(
+    activeCommitHash,
+    activeCommitFile
+  );
 
-  const branchListQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: async () => {
-      return await invoke<GitBranchListResult>("get_branch_list");
-    },
-  });
+  const branchListQuery = useBranchListQuery();
 
-  const openRepositoryMutation = useMutation({
-    mutationFn: async () => {
-      return await invoke<OpenRepositoryResult>("open_repository");
-    },
-    onSuccess(success) {
-      if (!success) {
-        console.error("Failed to open repository");
-
-        return;
-      }
-
-      commitsQuery.refetch();
-      branchListQuery.refetch();
-    },
-  });
+  const openRepositoryMutation = useOpenRepositoryMutation();
 
   return (
     <div className="container">

@@ -1,4 +1,4 @@
-type Option<T> = T | null;
+export type Option<T> = T | null;
 
 export type GitCommit = {
   hash: string;
