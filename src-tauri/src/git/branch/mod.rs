@@ -148,6 +148,20 @@ pub fn get_current_branch(dir: &PathBuf) -> Option<CurrentBranch> {
     parse_current_branch(&stdout)
 }
 
+pub fn change_branch(dir: &PathBuf, branch: &str) -> bool {
+    let output = create_git_cli()
+        .args(["checkout", branch])
+        .current_dir(dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("failed to spawn cmd process");
+
+    let output = output.wait_with_output().expect("failed to read stdout");
+
+    output.status.success()
+}
+
 #[cfg(test)]
 mod tests {
 

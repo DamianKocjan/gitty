@@ -2,8 +2,10 @@ use std::sync::Mutex;
 
 use tauri::Runtime;
 use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_store::StoreExt;
 
 use git::repository::is_git_repository_found;
+use utils::persistent_storage::{update_last_opened_repository, STORE_FILENAME};
 
 mod git;
 mod utils;
@@ -51,12 +53,12 @@ fn open_repository<R: Runtime>(
     app: tauri::AppHandle<R>,
     state: tauri::State<'_, AppState>,
 ) -> bool {
-    let file_path = app.dialog().file().blocking_pick_folder();
+    let folder_path = app.dialog().file().blocking_pick_folder();
 
-    if let Some(file_path) = file_path {
-        let file_path = file_path.into_path().unwrap();
+    if let Some(file_path) = folder_path {
+        let folder_path = file_path.into_path().unwrap();
 
-        if !is_git_repository_found(&file_path) {
+        if !is_git_repository_found(&folder_path) {
             app.dialog()
                 .message("Not a git repository")
                 .kind(tauri_plugin_dialog::MessageDialogKind::Error)
@@ -64,8 +66,31 @@ fn open_repository<R: Runtime>(
             return false;
         }
 
+        let store = app.store(STORE_FILENAME).unwrap();
+
+        update_last_opened_repository(&store, folder_path.to_str().unwrap());
+
         let mut cwd = state.cwd.lock().unwrap();
-        *cwd = file_path;
+        *cwd = folder_path;
+    }
+
+    true
+}
+
+#[tauri::command]
+fn change_branch<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    branch: &str,
+) -> bool {
+    let output = git::branch::change_branch(&state.cwd.lock().unwrap().to_path_buf(), branch);
+
+    if !output {
+        app.dialog()
+            .message("Failed to change branch")
+            .kind(tauri_plugin_dialog::MessageDialogKind::Error)
+            .blocking_show();
+        return false;
     }
 
     true
@@ -86,10 +111,12 @@ impl Default for AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
+            change_branch,
             open_repository,
             greet,
             get_commits,
